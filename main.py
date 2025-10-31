@@ -78,9 +78,9 @@ if __name__ == "__main__":
         plotter.run_plot("terr_alt")
 
         # (Descomente para rodar outros comandos)
-        # app_service.generate_ml_features()
-        # plotter.run_plot("ml_dashboard")
-        # plotter.run_plot("outlier_analysis")
+        app_service.generate_ml_features()
+        plotter.run_plot("ml_dashboard")
+        plotter.run_plot("outlier_analysis")
 
         print("\n--- Execução do script concluída ---")
 

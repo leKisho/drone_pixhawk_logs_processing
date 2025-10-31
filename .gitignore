@@ -8,6 +8,8 @@ __pycache__/
 # Bancos de dados SQLite
 *.db
 
+*.png
+
 # Pastas de ambiente virtual
 venv/
 .venv/

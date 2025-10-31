@@ -4,5 +4,4 @@ plotly
 numpy
 scipy
 flask
-webbrowser
 kaleido
