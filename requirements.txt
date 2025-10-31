@@ -1,7 +1,8 @@
 pandas
-numpy
 matplotlib
-utm
+plotly
+numpy
 scipy
-scikit-learn
-Flask
+flask
+webbrowser
+kaleido

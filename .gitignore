@@ -1,0 +1,22 @@
+# Arquivos de cache do Python
+__pycache__/
+*.pyc
+
+# Arquivos de log gerados
+*.log
+
+# Bancos de dados SQLite
+*.db
+
+# Pastas de ambiente virtual
+venv/
+.venv/
+.env
+
+
+!assets/logs/log_exemplo.log
+!assets/database_exemplo.db
+
+# 3. Permite que as pastas de assets sejam rastreadas
+!assets/plotts/.gitkeep
+!assets/logs/.gitkeep
