@@ -9,8 +9,8 @@ from threading import Timer
 
 # --- Configuração ---
 # Pega as configurações do seu main.py
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATABASE_PATH = os.path.join(BASE_DIR, "meu_banco_de_logs.db")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__)) + "/assets/"
+DATABASE_PATH = os.path.join(BASE_DIR, "logs_db.db")
 # --------------------
 
 app = Flask(__name__)
