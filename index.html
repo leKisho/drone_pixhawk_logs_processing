@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Logs do Drone</title>
+    <style>
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; background: #f4f4f9; color: #333; margin: 0; padding: 20px; }
+        h1 { color: #1a1a1a; }
+        .controls { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; display: flex; gap: 15px; align-items: center; }
+        select, button { font-size: 16px; padding: 8px 12px; border-radius: 5px; border: 1px solid #ddd; }
+        button { background: #007aff; color: white; cursor: pointer; border: none; }
+        #loading { display: none; margin-left: 10px; }
+        #data-container { overflow-x: auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-height: 70vh; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px 15px; border-bottom: 1px solid #eee; text-align: left; white-space: nowrap; }
+        th { background: #f9f9f9; position: sticky; top: 0; }
+        tr:nth-child(even) { background: #fdfdfd; }
+    </style>
+</head>
+<body>
+    <h1>Visualizador de Logs do Drone</h1>
+    
+    <div class="controls">
+        <label for="log-select">1. Selecione o Log:</label>
+        <select id="log-select">
+            <option value="">Carregando...</option>
+        </select>
+
+        <label for="table-select">2. Selecione a Informação:</label>
+        <select id="table-select" disabled>
+            <option value="">--</option>
+        </select>
+        
+        <span id="loading">Carregando dados...</span>
+    </div>
+
+    <div id="data-container">
+        <p style="padding: 20px; text-align: center; color: #888;">Selecione um log e uma informação para ver os dados.</p>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>
