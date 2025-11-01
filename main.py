@@ -54,8 +54,8 @@ if __name__ == "__main__":
     plotter = PlottingService(repo)
     app_service = ApplicationService(repo, LOG_FILE_PATH)
 
-    print("\n--- Processador de Log de Voo (DDD Refactored) ---")
-    print("Executando tarefas hard-coded em main.py...")
+    print("\n--- Processador de Log de Voo ---")
+    print("Executando tarefas em main.py...")
 
     # 3. Execução das Tarefas
     try:
@@ -80,7 +80,7 @@ if __name__ == "__main__":
         # (Descomente para rodar outros comandos)
         app_service.generate_ml_features()
         plotter.run_plot("ml_dashboard")
-        plotter.run_plot("outlier_analysis")
+        #plotter.run_plot("outlier_analysis")
 
         print("\n--- Execução do script concluída ---")
 

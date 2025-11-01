@@ -122,7 +122,7 @@ class SQLRepository(ILogRepository):
         table_name_base = filename.split('.')[0]
         final_table_name = f"{table_name_base}_{self.log_id}"
         
-        print(f"Salvando dados processados no SQL (Tabela: {final_table_name})...")
+        print(f"Salvando dados processados no SQL (Tabela: {final_table_name})...\n\n\n\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
         df.to_sql(final_table_name, self.conn, index=False, if_exists='replace')
         print("Dados processados salvos.")
 
