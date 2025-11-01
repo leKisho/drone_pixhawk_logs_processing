@@ -9,6 +9,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const dataContainer = document.getElementById('data-container');
     const loadingIndicator = document.getElementById('loading');
 
+    const exportButton = document.getElementById('export-button');
+    let currentTableName = null; // Guarda o nome da tabela selecionada
+
     /**
      * Mostra/Esconde o indicador de 'Carregando...'
      */
@@ -77,6 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadTableData(tableName) {
         if (!tableName) {
             dataContainer.innerHTML = '<p style="padding: 20px; text-align: center; color: #888;">Selecione uma tabela.</p>';
+            currentTableName = null; // <-- ADICIONE AQUI
             return;
         }
 
@@ -128,6 +132,9 @@ document.addEventListener('DOMContentLoaded', () => {
             table.appendChild(tbody);
             dataContainer.appendChild(table);
 
+            currentTableName = tableName; // Salva o nome da tabela
+            exportButton.style.display = 'inline-block'; // Mostra o botão
+
         } catch (error) {
             console.error("Erro ao carregar dados da tabela:", error);
             dataContainer.innerHTML = '<p style="padding: 20px; color: red;">Erro ao carregar dados.</p>';
@@ -143,12 +150,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. Quando o usuário mudar o Log, preencha o segundo dropdown
     logSelect.addEventListener('change', (e) => {
         dataContainer.innerHTML = '<p style="padding: 20px; text-align: center; color: #888;">Selecione uma informação.</p>';
+        exportButton.style.display = 'none'; // <-- ADICIONE AQUI
         loadTables(e.target.value);
     });
-    
+
     // 3. Quando o usuário mudar a Tabela, carregue os dados
     tableSelect.addEventListener('change', (e) => {
+        exportButton.style.display = 'none'; // <-- ADICIONE AQUI
         loadTableData(e.target.value);
     });
+
+    // 4. Quando o usuário clicar em Exportar
+    exportButton.addEventListener('click', () => {
+        if (currentTableName) {
+        // Chama o novo endpoint do Flask
+        window.location.href = `/api/export/${currentTableName}`;
+        }
+    });
+
 
 });

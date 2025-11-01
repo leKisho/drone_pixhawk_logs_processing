@@ -2,8 +2,9 @@
 import sqlite3
 import pandas as pd
 import json
+import re
 import os
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, send_from_directory, Response
 import webbrowser
 from threading import Timer
 
@@ -39,11 +40,16 @@ def get_logs():
     """
     valid_tables = get_valid_table_names()
     log_ids = set()
+    
     for table_name in valid_tables:
-        parts = table_name.split('_')
-        if len(parts) > 1:
-            # Assume que o log_id é tudo após o primeiro prefixo (ex: 'GPS_...')
-            log_id = '_'.join(parts[1:])
+        # Procura pelo primeiro underscore (_) seguido por um dígito (\d)
+        # (ex: ..._2025...)
+        match = re.search(r'(_\d.*)', table_name)
+        
+        if match:
+            # Pega o grupo capturado (ex: '_2025_09_03...')
+            # e remove o primeiro underscore
+            log_id = match.group(1)[1:]
             log_ids.add(log_id)
             
     return jsonify(list(log_ids))
@@ -87,9 +93,43 @@ def get_table_data(table_name):
         conn.close()
         return jsonify({"error": str(e)}), 500
 
+
+@app.route('/api/export/<table_name>')
+def export_table_csv(table_name):
+    """
+    Endpoint 4: Pega todos os dados de uma tabela específica
+    e retorna como um arquivo .csv para download.
+    """
+    
+    # --- Medida de Segurança (Previne SQL Injection) ---
+    valid_tables = get_valid_table_names()
+    if table_name not in valid_tables:
+        return jsonify({"error": "Nome de tabela inválido"}), 400
+    
+    # Se for seguro, executa a consulta
+    conn = get_db_connection()
+    try:
+        df = pd.read_sql(f"SELECT * FROM {table_name}", conn)
+        conn.close()
+        
+        # Converte o DataFrame para um CSV em memória
+        csv_data = df.to_csv(index=False, encoding='utf-8')
+        
+        # Retorna o CSV como um download
+        return Response(
+            csv_data,
+            mimetype="text/csv",
+            headers={"Content-disposition":
+                     f"attachment; filename={table_name}.csv"}
+        )
+    
+    except Exception as e:
+        conn.close()
+        return jsonify({"error": str(e)}), 500
+
+
 # --- Servindo o Front-End ---
 
-# <--- ADICIONADO ---
 @app.route('/')
 def serve_index():
     """Endpoint 4: Serve a página HTML principal (index.html)."""
