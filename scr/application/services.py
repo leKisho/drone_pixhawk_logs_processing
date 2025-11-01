@@ -2,15 +2,10 @@
 import pandas as pd
 from typing import List, Optional
 
-# Importa os "Contratos" da infraestrutura
 from scr.domain.interfaces import ILogRepository
-
-# Importa os "Algoritmos" do domínio
 from scr.domain import sensor_processing
 from scr.domain import feature_engineering
 from scr.domain import shared_algorithms
-
-# Importa os parsers da infraestrutura para o caso de uso de "separação"
 from scr.infrastructure.log_parser import LogLabeler, LogSeparator
 
 class ApplicationService:
@@ -75,7 +70,9 @@ class ApplicationService:
         
         print("Separação dos logs em CSVs concluída.")
 
-    def process_main_data(self, mins: int = 0, maxs: int = -1) -> None:
+    def process_main_data(self, mins: int = 0, maxs: int = -1, 
+                            aplicar_correcao: bool = True, 
+                            modo_interativo: bool = True) -> None:
         """
         Caso de Uso: /data
         (Substitui LogProcessor.data_preproxs)
@@ -84,14 +81,15 @@ class ApplicationService:
         print("Iniciando processamento principal de dados (/data)...")
         
         # 1. Obter Dados (Infraestrutura)
-        # ... (código igual) ...
+        # ... (código de obter dados, gps_df, rfnd_df, baro_df) ...
         raw_data = self.repo.get_raw_sensor_data(("GPS", "RFND", "BARO"))
         gps_df = raw_data["GPS"]
         rfnd_df = raw_data["RFND"]
         baro_df = raw_data["BARO"]
 
+
         # 2. Fatiar Dados (slicing)
-        # ... (código igual) ...
+        # ... (código de slicing, Tempo_GPS, Alt_GPS, etc.) ...
         gps_df_sliced = gps_df.iloc[mins:maxs].copy()
         Tempo_GPS = gps_df_sliced['TimeUS']
         Alt_GPS = gps_df_sliced['Alt']
@@ -116,13 +114,24 @@ class ApplicationService:
         z_sliced = z_agrupado.iloc[mins:maxs]
         erros_tempo_sliced = erros_tempo[mins:maxs]
         amplitude_z_sliced = amplitude_z[mins:maxs]
-        # z_ls_sliced = z_ls[mins:maxs] <--- REMOVIDO
 
         # ... (3d a 3h, vel, utm, normalize, zscore... tudo igual) ...
         vel, x_utm, y_utm = shared_algorithms.calculate_velocity_and_utm(Tempo_GPS.values, y_lat, x_lon)
         z_gps = Alt_GPS - z_sliced
         z_baro = alt_baro_sliced - z_sliced
-        z_gps_normalizado, tendencia_z_gps = sensor_processing.normalize_signal_with_polynomial_fit(Tempo_GPS, z_gps)
+
+        if aplicar_correcao:
+            print(f"Executando correção polinomial (Modo interativo: {modo_interativo})...")
+            z_gps_normalizado, tendencia_z_gps = sensor_processing.normalize_signal_with_polynomial_fit(
+                Tempo_GPS, z_gps, user_interaction=modo_interativo
+            )
+        else:
+            print("Correção polinomial PULADA. Usando 'z_gps' original.")
+            z_gps_normalizado = z_gps
+            # Define a tendência como 0 para não afetar os cálculos seguintes
+            tendencia_z_gps = pd.Series(0.0, index=Tempo_GPS.index)
+
+
         alt_gps_normalizado = Alt_GPS - tendencia_z_gps
         z_gps_final = z_gps_normalizado + Alt_GPS.iloc[0] 
         terr_alt = alt_gps_normalizado - alt_baro_sliced
