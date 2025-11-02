@@ -72,7 +72,8 @@ class ApplicationService:
 
     def process_main_data(self, mins: int = 0, maxs: int = -1, 
                             aplicar_correcao: bool = True, 
-                            modo_interativo: bool = True) -> None:
+                            modo_interativo: bool = True,
+                            grau_polinomio: int = 8) -> None:
         """
         Caso de Uso: /data
         (Substitui LogProcessor.data_preproxs)
@@ -123,7 +124,9 @@ class ApplicationService:
         if aplicar_correcao:
             print(f"Executando correção polinomial (Modo interativo: {modo_interativo})...")
             z_gps_normalizado, tendencia_z_gps = sensor_processing.normalize_signal_with_polynomial_fit(
-                Tempo_GPS, z_gps, user_interaction=modo_interativo
+                Tempo_GPS, z_gps, 
+                user_interaction=modo_interativo,
+                initial_degree=grau_polinomio  # <-- PASSE O GRAU AQUI
             )
         else:
             print("Correção polinomial PULADA. Usando 'z_gps' original.")

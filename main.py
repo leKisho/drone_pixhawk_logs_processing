@@ -10,7 +10,7 @@ from scr.infrastructure.sql_repository import SQLRepository
 # -----------------------------------------------------------------
 # --- CONFIGURAÇÃO GLOBAL ---
 # -----------------------------------------------------------------
-LOG_FILE_PATH = "./assets/logs/2025-09-03 11-30-05.log"
+LOG_FILE_PATH = "./assets/logs/2025-08-22 11-05-54.log"
 mins = 0
 maxs = -1
 
@@ -24,6 +24,9 @@ APLICAR_CORRECAO_POLINOMIAL = True
 # Mude para False para rodar a correção sem os plots interativos
 # (Isso só funciona se APLICAR_CORRECAO_POLINOMIAL for True)
 CORRECAO_POLINOMIAL_INTERATIVA = True
+
+GRAU_POLINOMIO_INICIAL = 8
+
 # -----------------------------------------------------------------
 
 
@@ -79,18 +82,18 @@ if __name__ == "__main__":
             mins=mins, 
             maxs=maxs,
             aplicar_correcao=APLICAR_CORRECAO_POLINOMIAL,
-            modo_interativo=CORRECAO_POLINOMIAL_INTERATIVA
+            modo_interativo=CORRECAO_POLINOMIAL_INTERATIVA,
+            grau_polinomio=GRAU_POLINOMIO_INICIAL
         )
         
-        # --- Tarefa 3: Plotar ---
+        # --- Tarefa 3: Plotar (Descomente para rodar os comandos) ---
         
-        #plotter.run_plot("3d_profiles")
-        #plotter.run_plot("terr_alt")
+        plotter.run_plot("3d_profiles")
+        plotter.run_plot("terr_alt")
 
-        # (Descomente para rodar outros comandos)
-        #app_service.generate_ml_features()
-        #plotter.run_plot("ml_dashboard")
-        #plotter.run_plot("outlier_analysis")
+        app_service.generate_ml_features()
+        plotter.run_plot("ml_dashboard")
+        plotter.run_plot("outlier_analysis")
 
         print("\n--- Execução do script concluída ---")
 
