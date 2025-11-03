@@ -39,6 +39,8 @@ class PlottingService:
             "error_combined": self.plot_error_combined,
             "error_individual": self.plot_individual_errors,
             "outlier_analysis": self.plot_outlier_analysis,
+            "classification_map": self.plot_classification_map,
+            "terr_profile": self.plot_terr_profile,
         }
 
     def show_available(self) -> None:
@@ -309,5 +311,150 @@ class PlottingService:
         save_path2 = os.path.join(self.current_plot_dir, 'plot_outlier_analysis_B_Temporal.png') # <--- Caminho usa self.current_plot_dir
         print(f"Salvando plot em: {save_path2}")
         fig2.savefig(save_path2)
+        plt.show()
+        plt.close('all') # Limpa a memória
+
+
+    # --- 2. ADICIONE O NOVO MÉTODO DE PLOT DE HISTOGRAMA ---
+    # Este método é "interno" (começa com _) porque é chamado por outro
+    # serviço, não diretamente pelo menu de plots.
+    
+    def _show_labeling_histogram(self, data: pd.Series, title: str, xlabel: str, percentile_clip=0.99):
+        """
+        (Helper de plotagem chamado pelo ApplicationService)
+        Plota um histograma limpo e bloqueante para facilitar a decisão.
+        """
+        plt.figure(figsize=(12, 6))
+        
+        # Remove NaNs e outliers extremos para um plot melhor
+        data_cleaned = data.dropna()
+        if data_cleaned.empty:
+            print("Aviso: Não há dados para plotar no histograma (todos NaN?).")
+            return
+
+        clip_value = data_cleaned.quantile(percentile_clip)
+        data_clipped = data_cleaned[data_cleaned <= clip_value]
+        
+        plt.hist(data_clipped, bins=100, alpha=0.75, edgecolor='black')
+        plt.title(title, fontsize=16)
+        plt.xlabel(xlabel, fontsize=12)
+        plt.ylabel("Contagem de Amostras", fontsize=12)
+        plt.grid(axis='y', linestyle='--', alpha=0.7)
+        print("\nExibindo gráfico... Feche a janela do gráfico para continuar.")
+        
+        # O 'block=True' é crucial. Ele pausa a execução até
+        # que você feche a janela do gráfico, permitindo que você
+        # veja o gráfico antes de responder ao 'input()'
+        plt.show(block=True)
+
+
+
+    def plot_classification_map(self) -> None:
+        """
+        Plota um mapa 3D dos pontos de voo, coloridos pela
+        classe predita pelo modelo de ML (Solo/Água vs. Vegetação).
+        """
+        # ... (seu código de carregar dados_coords e dados_ml) ...
+        try:
+            dados_coords = self.repo.get_processed_dataframe("dados_variados.csv")
+            dados_ml = self.repo.get_processed_dataframe("classified_data.csv")
+        except FileNotFoundError as e:
+            print(f"Erro ao carregar dados para o plot de classificação: {e}")
+            return
+            
+        dados_plot = pd.merge(dados_coords, dados_ml, on="TimeUS", how="inner")
+        
+        if dados_plot.empty:
+            print("Erro: Não foi possível alinhar dados de coordenadas e classificação.")
+            return
+
+        x, y = dados_plot['x'], dados_plot['y']
+        z_lidar = dados_plot['Dist'] 
+        classes = dados_plot['Classe_Predita']
+        
+        # Mapeia classes para cores (2 CLASSES)
+        # Classe 0 (Solo/Água) = marrom
+        # Classe 1 (Vegetacao) = verde
+        colors = classes.map({
+            0: '#8B4513',  # Marrom (Solo/Água)
+            1: '#228B22',  # Verde (Vegetação)
+        }).fillna('#808080') # Cinza (Outros/NaN)
+
+        fig = plt.figure(figsize=(12, 8))
+        ax = fig.add_subplot(111, projection='3d')
+        ax.scatter(x, y, z_lidar, c=colors, s=5, label='Pontos Classificados')
+        
+        from matplotlib.lines import Line2D
+        # Legenda com 2 CLASSES
+        legend_elements = [
+            Line2D([0], [0], marker='o', color='w', label='Solo/Água (Predito)', markerfacecolor='#8B4513', markersize=10),
+            Line2D([0], [0], marker='o', color='w', label='Vegetação (Predito)', markerfacecolor='#228B22', markersize=10)
+        ]
+
+        ax.set_title('Mapa de Classificação de Superfície (LIDAR)'); 
+        ax.set_xlabel('X (UTM)'); 
+        ax.set_ylabel('Y (UTM)'); 
+        ax.set_zlabel('Distância LIDAR (m)'); 
+        ax.legend(handles=legend_elements)
+        
+        save_path = os.path.join(self.current_plot_dir, 'plot_classification_map_3d.png')
+        print(f"Salvando plot de classificação em: {save_path}")
+        fig.savefig(save_path)
+        plt.show()
+        plt.close('all')
+
+
+    def plot_terr_profile(self) -> None:
+        """
+        Plota um gráfico duplo:
+        1. (Superior) Progressão temporal da altitude do drone (BARO) e
+           da superfície medida (LIDAR+BARO).
+        2. (Inferior) Progressão temporal da altitude do terreno (TERR).
+        """
+        try:
+            data = self.repo.get_processed_dataframe("dados_plot2D.csv")
+        except FileNotFoundError as e:
+            print(str(e))
+            return
+            
+        # Define as colunas que precisamos para este plot
+        colunas_necessarias = ['TimeMS', 'Alt_BARO', 'Alt_Ld_BARO', 'Alt_Solo_TERR']
+        data_cleaned = data.dropna(subset=colunas_necessarias)
+        
+        if data_cleaned.empty:
+            print("Erro: Não há dados suficientes (Alt_BARO, Alt_Ld_BARO, Alt_Solo_TERR) para plotar o perfil do terreno.")
+            print("Certifique-se de que o log contém dados TERR.")
+            return
+
+        print("Gerando plot 'terr_profile'...")
+        
+        # Cria 2 subplots (2 linhas, 1 coluna) que compartilham o eixo X
+        fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(15, 10), sharex=True)
+        
+        # --- Gráfico Superior (Plot A) ---
+        ax1 = axes[0]
+        ax1.plot(data_cleaned['TimeMS'], data_cleaned['Alt_BARO'], label='Altitude Drone (BARO)', color='cyan', linestyle='--')
+        ax1.plot(data_cleaned['TimeMS'], data_cleaned['Alt_Ld_BARO'], label='Superfície Medida (LIDAR+BARO)', color='blue')
+        ax1.set_title('Perfil de Voo e Superfície Medida')
+        ax1.set_ylabel('Altitude (m)')
+        ax1.legend()
+        ax1.grid(True, alpha=0.5)
+
+        # --- Gráfico Inferior (Plot B) ---
+        ax2 = axes[1]
+        ax2.plot(data_cleaned['TimeMS'], data_cleaned['Alt_Solo_TERR'], label='Altitude Terreno (TERR)', color='green')
+        ax2.set_title('Perfil do Terreno (Fonte: TERR)')
+        ax2.set_ylabel('Altitude (m)')
+        ax2.set_xlabel('Tempo (ms)')
+        ax2.legend()
+        ax2.grid(True, alpha=0.5)
+
+        # Ajusta o layout para evitar sobreposição
+        plt.tight_layout()
+        
+        # Salva o gráfico
+        save_path = os.path.join(self.current_plot_dir, 'plot_terr_profile.png')
+        print(f"Salvando plot em: {save_path}")
+        fig.savefig(save_path)
         plt.show()
         plt.close('all') # Limpa a memória

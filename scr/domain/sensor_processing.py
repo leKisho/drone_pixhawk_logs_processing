@@ -315,3 +315,73 @@ def filter_outliers_zscore(data: pd.Series, threshold: float = 2.0) -> pd.Series
     print(f"Método Z-score encontrou e removeu {outliers_encontrados} outliers.")
     
     return data_filtrada
+
+def align_by_nearest_time_and_interpolate(
+    target_time_series: pd.Series,
+    data_time_series: pd.Series,
+    data_value_series: pd.Series,
+    max_time_diff_us: float = 500000  # 0.5 segundos de tolerância
+) -> pd.Series:
+    """
+    (Novo algoritmo de Domínio)
+    Alinha uma série de dados (ex: TERR) a uma série de tempo alvo (ex: GPS)
+    encontrando o ponto de dados mais próximo no tempo para cada ponto alvo.
+    
+    1. Para cada timestamp 'alvo', encontra o 'dado' com a menor
+       diferença de tempo (se dentro da tolerância).
+    2. Cria uma nova série alinhada com muitas lacunas (NaNs).
+    3. Preenche as lacunas com uma "transição suave" (interpolação linear).
+    4. Preenche as bordas (início/fim) com o valor mais próximo.
+    """
+    print(f"Alinhando {data_value_series.name} (len={len(data_value_series)}) ao tempo alvo (len={len(target_time_series)})...")
+    
+    # Converte para arrays numpy para velocidade
+    target_times = target_time_series.values
+    data_times = data_time_series.values
+    data_values = data_value_series.values
+    
+    # 1. Encontra o índice do tempo de 'data' mais próximo para cada 'target'
+    # 'np.searchsorted' é uma forma muito rápida de fazer isso
+    # Encontra onde cada 'target_time' se encaixaria no 'data_times'
+    indices_insercao = np.searchsorted(data_times, target_times)
+    
+    # Lida com índices de borda
+    indices_insercao[indices_insercao >= len(data_times)] = len(data_times) - 1
+    
+    # Compara o vizinho da esquerda vs. da direita
+    idx_esquerda = indices_insercao - 1
+    idx_esquerda[idx_esquerda < 0] = 0 # Garante que não seja < 0
+    
+    diff_esquerda = np.abs(data_times[idx_esquerda] - target_times)
+    diff_direita = np.abs(data_times[indices_insercao] - target_times)
+    
+    # Escolhe o índice que tiver a menor diferença de tempo
+    indices_mais_proximos = np.where(diff_esquerda < diff_direita, idx_esquerda, indices_insercao)
+    
+    # 2. Cria a nova série alinhada (com lacunas)
+    diffs_minimas = np.min(np.vstack([diff_esquerda, diff_direita]), axis=0)
+    
+    # Inicializa com NaNs
+    valores_alinhados = np.full(target_times.shape, np.nan)
+    
+    # Define o valor apenas se a diferença de tempo estiver dentro da tolerância
+    mask_tolerancia = diffs_minimas <= max_time_diff_us
+    valores_alinhados[mask_tolerancia] = data_values[indices_mais_proximos[mask_tolerancia]]
+    
+    # Converte de volta para uma Series Pandas para interpolação
+    series_alinhada = pd.Series(valores_alinhados, index=target_time_series.index)
+    
+    # 3. Preenche as lacunas
+    print("Preenchendo lacunas com interpolação linear...")
+    # 'linear' faz a "transição suave"
+    series_interpolada = series_alinhada.interpolate(method='linear')
+    
+    # 'ffill' e 'bfill' preenchem as pontas (início/fim) caso
+    # a interpolação não consiga
+    series_final = series_interpolada.ffill().bfill()
+    
+    # Quantos valores preenchemos
+    nans_originais = series_alinhada.isna().sum()
+    print(f"Alinhamento concluído. {nans_originais} lacunas preenchidas.")
+    
+    return series_final
